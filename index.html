@@ -84,7 +84,7 @@
       border-radius: 8px;
     }
 
-    .edit-btn, .save-btn {
+    .edit-btn, .save-btn, .delete-btn {
       margin-top: 0.5em;
       background: #FFC107;
       color: #333;
@@ -94,12 +94,13 @@
       cursor: pointer;
     }
 
-    .edit-btn:hover, .save-btn:hover {
+    .edit-btn:hover, .save-btn:hover, .delete-btn:hover {
       background: #FFB300;
     }
 
-    .hidden {
-      display: none;
+    .strength {
+      font-size: 0.9em;
+      color: #FF0000;
     }
 
     @media (max-width: 600px) {
@@ -150,6 +151,7 @@
           <input type="text" id="service" placeholder="Enter service name" required>
           <label for="password-input">Password:</label>
           <input type="password" id="password-input" placeholder="Enter password" required>
+          <div id="strength-feedback" class="strength"></div>
           <button type="submit">Save Password</button>
         </form>
       </section>
@@ -209,18 +211,57 @@
     // Password Management Logic
     const passwordForm = document.getElementById('password-form');
     const passwordsList = document.getElementById('passwords');
+    const passwordInput = document.getElementById('password-input');
+    const serviceInput = document.getElementById('service');
+    const strengthFeedback = document.getElementById('strength-feedback');
+
+    let editingIndex = null;
+
+    function checkPasswordStrength(password) {
+      let strength = 0;
+      if (password.length >= 8) strength++;
+      if (/[A-Z]/.test(password)) strength++;
+      if (/[a-z]/.test(password)) strength++;
+      if (/[0-9]/.test(password)) strength++;
+      if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+      if (strength === 0) return 'Too Weak';
+      if (strength <= 2) return 'Weak';
+      if (strength <= 4) return 'Moderate';
+      return 'Strong';
+    }
+
+    passwordInput.addEventListener('input', () => {
+      const strength = checkPasswordStrength(passwordInput.value);
+      strengthFeedback.textContent = `Strength: ${strength}`;
+      strengthFeedback.style.color = strength === 'Strong' ? 'green' : strength === 'Moderate' ? 'orange' : 'red';
+    });
 
     passwordForm.addEventListener('submit', (event) => {
       event.preventDefault();
-      const service = document.getElementById('service').value.trim();
-      const password = document.getElementById('password-input').value.trim();
-      const passwords = JSON.parse(localStorage.getItem('passwords')) || [];
+      const service = serviceInput.value.trim();
+      const password = passwordInput.value.trim();
+      const strength = checkPasswordStrength(password);
 
-      if (service && password) {
-        passwords.push({ service, password });
-        localStorage.setItem('passwords', JSON.stringify(passwords));
-        displayPasswords();
+      if (strength === 'Too Weak' || strength === 'Weak') {
+        alert(`Password is too weak to save. Strength: ${strength}`);
+        return;
       }
+
+      const passwords = JSON.parse(localStorage.getItem('passwords')) || [];
+      if (editingIndex !== null) {
+        // Update existing password
+        passwords[editingIndex] = { service, password };
+        editingIndex = null; // Reset editing state
+      } else {
+        // Add new password
+        passwords.push({ service, password });
+      }
+
+      localStorage.setItem('passwords', JSON.stringify(passwords));
+      displayPasswords();
+      passwordForm.reset();
+      strengthFeedback.textContent = '';
     });
 
     function displayPasswords() {
@@ -228,46 +269,29 @@
       passwordsList.innerHTML = '';
       passwords.forEach((item, index) => {
         const li = document.createElement('li');
-
-        const serviceInput = document.createElement('input');
-        serviceInput.type = 'text';
-        serviceInput.value = item.service;
-        serviceInput.readOnly = true;
-
-        const passwordInput = document.createElement('input');
-        passwordInput.type = 'text';
-        passwordInput.value = item.password;
-        passwordInput.readOnly = true;
-
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.classList.add('edit-btn');
-        editBtn.addEventListener('click', () => {
-          serviceInput.readOnly = false;
-          passwordInput.readOnly = false;
-          saveBtn.classList.remove('hidden');
-          editBtn.classList.add('hidden');
-        });
-
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Save';
-        saveBtn.classList.add('save-btn', 'hidden');
-        saveBtn.addEventListener('click', () => {
-          serviceInput.readOnly = true;
-          passwordInput.readOnly = true;
-          editBtn.classList.remove('hidden');
-          saveBtn.classList.add('hidden');
-          passwords[index] = { service: serviceInput.value, password: passwordInput.value };
-          localStorage.setItem('passwords', JSON.stringify(passwords));
-        });
-
-        li.appendChild(serviceInput);
-        li.appendChild(passwordInput);
-        li.appendChild(editBtn);
-        li.appendChild(saveBtn);
+        li.innerHTML = `
+          ${item.service}: ${item.password} (Strength: ${checkPasswordStrength(item.password)})
+          <button onclick="editPassword(${index})" class="edit-btn">Edit</button>
+          <button onclick="deletePassword(${index})" class="delete-btn">Delete</button>
+        `;
         passwordsList.appendChild(li);
       });
     }
+
+    window.editPassword = (index) => {
+      const passwords = JSON.parse(localStorage.getItem('passwords')) || [];
+      const { service, password } = passwords[index];
+      serviceInput.value = service;
+      passwordInput.value = password;
+      editingIndex = index; // Set the index of the password being edited
+    };
+
+    window.deletePassword = (index) => {
+      const passwords = JSON.parse(localStorage.getItem('passwords')) || [];
+      passwords.splice(index, 1); // Remove the selected password
+      localStorage.setItem('passwords', JSON.stringify(passwords));
+      displayPasswords();
+    };
 
     displayPasswords();
   </script>
