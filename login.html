@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Manager with Authentication</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+      color: #333;
+    }
+
+    header {
+      background: #4CAF50;
+      color: white;
+      padding: 1.2em 0;
+      text-align: center;
+      font-size: 1.5em;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    main {
+      padding: 1.5em;
+      max-width: 400px;
+      margin: auto;
+    }
+
+    section {
+      background: white;
+      padding: 1.5em;
+      margin-bottom: 1em;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      font-size: 1.3em;
+      color: #4CAF50;
+      margin-bottom: 1em;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1em;
+    }
+
+    input, button {
+      padding: 0.8em;
+      font-size: 1em;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #45A049;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      padding: 0.8em;
+      margin-bottom: 1em;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .edit-btn, .save-btn {
+      margin-top: 0.5em;
+      background: #FFC107;
+      color: #333;
+      border: none;
+      padding: 0.5em 1em;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .edit-btn:hover, .save-btn:hover {
+      background: #FFB300;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.95em;
+      }
+
+      header {
+        font-size: 1.2em;
+        padding: 1em;
+      }
+
+      h2 {
+        font-size: 1.1em;
+      }
+
+      input, button {
+        padding: 0.7em;
+        font-size: 0.9em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Password Manager
+  </header>
+  <main>
+    <!-- Authentication Section -->
+    <section id="auth-section">
+      <h2 id="auth-title">Login</h2>
+      <form id="auth-form">
+        <label for="username">Username:</label>
+        <input type="text" id="username" placeholder="Enter username" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter password" required>
+        <button type="submit">Login</button>
+        <p id="toggle-auth">Don't have an account? <span style="color: #4CAF50; cursor: pointer;">Create one</span></p>
+      </form>
+    </section>
+
+    <!-- Password Manager Section -->
+    <section id="password-manager-section" class="hidden">
+      <h2>Manage Your Passwords</h2>
+      <section id="add-password">
+        <form id="password-form">
+          <label for="service">Service:</label>
+          <input type="text" id="service" placeholder="Enter service name" required>
+          <label for="password-input">Password:</label>
+          <input type="password" id="password-input" placeholder="Enter password" required>
+          <button type="submit">Save Password</button>
+        </form>
+      </section>
+      <section id="password-list">
+        <h2>Saved Passwords</h2>
+        <ul id="passwords"></ul>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    // Authentication Logic
+    const authSection = document.getElementById('auth-section');
+    const authForm = document.getElementById('auth-form');
+    const authTitle = document.getElementById('auth-title');
+    const toggleAuth = document.getElementById('toggle-auth');
+    const passwordManagerSection = document.getElementById('password-manager-section');
+
+    let isLoginMode = true;
+
+    toggleAuth.addEventListener('click', () => {
+      isLoginMode = !isLoginMode;
+      authTitle.textContent = isLoginMode ? 'Login' : 'Create Account';
+      authForm.querySelector('button').textContent = isLoginMode ? 'Login' : 'Create Account';
+      toggleAuth.innerHTML = isLoginMode
+        ? "Don't have an account? <span style='color: #4CAF50; cursor: pointer;'>Create one</span>"
+        : "Already have an account? <span style='color: #4CAF50; cursor: pointer;'>Login</span>";
+    });
+
+    authForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const users = JSON.parse(localStorage.getItem('users')) || {};
+
+      if (isLoginMode) {
+        if (users[username] && users[username] === password) {
+          alert('Login successful!');
+          authSection.classList.add('hidden');
+          passwordManagerSection.classList.remove('hidden');
+        } else {
+          alert('Invalid username or password.');
+        }
+      } else {
+        if (users[username]) {
+          alert('Username already exists.');
+        } else {
+          users[username] = password;
+          localStorage.setItem('users', JSON.stringify(users));
+          alert('Account created successfully!');
+          isLoginMode = true;
+          toggleAuth.click();
+        }
+      }
+    });
+
+    // Password Management Logic
+    const passwordForm = document.getElementById('password-form');
+    const passwordsList = document.getElementById('passwords');
+
+    passwordForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const service = document.getElementById('service').value.trim();
+      const password = document.getElementById('password-input').value.trim();
+      const passwords = JSON.parse(localStorage.getItem('passwords')) || [];
+
+      if (service && password) {
+        passwords.push({ service, password });
+        localStorage.setItem('passwords', JSON.stringify(passwords));
+        displayPasswords();
+      }
+    });
+
+    function displayPasswords() {
+      const passwords = JSON.parse(localStorage.getItem('passwords')) || [];
+      passwordsList.innerHTML = '';
+      passwords.forEach((item, index) => {
+        const li = document.createElement('li');
+
+        const serviceInput = document.createElement('input');
+        serviceInput.type = 'text';
+        serviceInput.value = item.service;
+        serviceInput.readOnly = true;
+
+        const passwordInput = document.createElement('input');
+        passwordInput.type = 'text';
+        passwordInput.value = item.password;
+        passwordInput.readOnly = true;
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.classList.add('edit-btn');
+        editBtn.addEventListener('click', () => {
+          serviceInput.readOnly = false;
+          passwordInput.readOnly = false;
+          saveBtn.classList.remove('hidden');
+          editBtn.classList.add('hidden');
+        });
+
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save';
+        saveBtn.classList.add('save-btn', 'hidden');
+        saveBtn.addEventListener('click', () => {
+          serviceInput.readOnly = true;
+          passwordInput.readOnly = true;
+          editBtn.classList.remove('hidden');
+          saveBtn.classList.add('hidden');
+          passwords[index] = { service: serviceInput.value, password: passwordInput.value };
+          localStorage.setItem('passwords', JSON.stringify(passwords));
+        });
+
+        li.appendChild(serviceInput);
+        li.appendChild(passwordInput);
+        li.appendChild(editBtn);
+        li.appendChild(saveBtn);
+        passwordsList.appendChild(li);
+      });
+    }
+
+    displayPasswords();
+  </script>
+</body>
+</html>
