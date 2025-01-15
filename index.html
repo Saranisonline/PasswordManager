@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Password Manager with Authentication</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -158,6 +159,7 @@
       <section id="password-list">
         <h2>Saved Passwords</h2>
         <ul id="passwords"></ul>
+        <button id="download-pdf" class="save-btn">Download Passwords as PDF</button>
       </section>
     </section>
   </main>
@@ -292,6 +294,27 @@
       localStorage.setItem('passwords', JSON.stringify(passwords));
       displayPasswords();
     };
+
+    // PDF Generation
+    const downloadPdfButton = document.getElementById('download-pdf');
+
+    downloadPdfButton.addEventListener('click', () => {
+      const passwords = JSON.parse(localStorage.getItem('passwords')) || [];
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(18);
+      doc.text("Saved Passwords", 20, 20);
+
+      let y = 30;
+      passwords.forEach((item, index) => {
+        doc.setFontSize(12);
+        doc.text(`${item.service}: ${item.password} (Strength: ${checkPasswordStrength(item.password)})`, 20, y);
+        y += 10;
+      });
+
+      doc.save('passwords.pdf');
+    });
 
     displayPasswords();
   </script>
